@@ -139,7 +139,7 @@ echoTask resQ cmdDat val = flip E.catchAny errHdl $ do
 --
 genCmdRunTask :: DM.DefaultCmdRunCommandData -> AppContext (IOTask ())
 genCmdRunTask dat = do
-  scriptsDir <- view DM.scriptsDirDomainData <$> lift ask
+  toolsDir <- view DM.toolsDirDomainData <$> lift ask
   resQ <- view DM.responseQueueDomainData <$> lift ask
   let nameTmp = dat^.DM.nameDefaultCmdRunCommandData
       argsBS = DM.unRawJsonByteString $ dat^.DM.argumentsDefaultCmdRunCommandData
@@ -148,7 +148,7 @@ genCmdRunTask dat = do
   name <- validateCommand nameTmp
   argsStr <- validateCommandArg $ args^.argumentsStringToolParams
 
-  let cmd = scriptsDir </> name ++ ".sh" ++ " " ++ argsStr
+  let cmd = toolsDir </> name ++ ".sh" ++ " " ++ argsStr
 
   $logDebugS DM._LOGTAG $ T.pack $ "cmdRunTask: system cmd. " ++ cmd
   return $ cmdRunTask resQ dat cmd
