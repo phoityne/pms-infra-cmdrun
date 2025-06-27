@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE CPP #-}
 module PMS.Infra.CmdRun.DS.Core where
 
 import System.IO
@@ -147,8 +147,13 @@ genCmdRunTask dat = do
   
   name <- validateCommand nameTmp
   argsStr <- validateCommandArg $ args^.argumentsStringToolParams
+#ifdef mingw32_HOST_OS
+  let scriptExt = ".bat"
+#else
+  let scriptExt = ".sh"
+#endif
 
-  let cmd = toolsDir </> name ++ ".sh" ++ " " ++ argsStr
+  let cmd = toolsDir </> name ++ scriptExt ++ " " ++ argsStr
 
   $logDebugS DM._LOGTAG $ T.pack $ "cmdRunTask: system cmd. " ++ cmd
   return $ cmdRunTask resQ dat cmd
