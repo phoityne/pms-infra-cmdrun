@@ -1,6 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE LambdaCase #-}
+
 module PMS.Infra.CmdRun.DS.Core where
 
 import System.IO
