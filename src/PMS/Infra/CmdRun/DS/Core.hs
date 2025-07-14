@@ -25,6 +25,7 @@ import System.Exit
 
 import qualified PMS.Domain.Model.DM.Type as DM
 import qualified PMS.Domain.Model.DM.Constant as DM
+import qualified PMS.Domain.Model.DS.Utility as DM
 
 import PMS.Infra.CmdRun.DM.Type
 import PMS.Infra.CmdRun.DS.Utility
@@ -56,16 +57,18 @@ src = lift go >>= yield >> src
 --
 cmd2task :: ConduitT DM.CmdRunCommand (IOTask ()) AppContext ()
 cmd2task = await >>= \case
-  Just cmd -> flip catchError errHdl $ do
+  Just cmd -> flip catchError (errHdl cmd) $ do
     lift (go cmd) >>= yield >> cmd2task
   Nothing -> do
     $logWarnS DM._LOGTAG "cmd2task: await returns nothing. skip."
     cmd2task
 
   where
-    errHdl :: String -> ConduitT DM.CmdRunCommand (IOTask ()) AppContext ()
-    errHdl msg = do
+    errHdl :: DM.CmdRunCommand -> String -> ConduitT DM.CmdRunCommand (IOTask ()) AppContext ()
+    errHdl cmdCmd msg = do
+      let jsonrpc = DM.getJsonRpcCmdRunCommand cmdCmd
       $logWarnS DM._LOGTAG $ T.pack $ "cmd2task: exception occurred. skip. " ++ msg
+      lift $ errorToolsCallResponse jsonrpc $ "cmd2task: exception occurred. skip. " ++ msg
       cmd2task
 
     go :: DM.CmdRunCommand -> AppContext (IOTask ())
@@ -147,8 +150,8 @@ genCmdRunTask dat = do
       argsBS = DM.unRawJsonByteString $ dat^.DM.argumentsDefaultCmdRunCommandData
   args <- liftEither $ eitherDecode $ argsBS
   
-  name <- validateCommand nameTmp
-  argsStr <- validateCommandArg $ args^.argumentsStringToolParams
+  name <- liftIOE $ DM.validateCommand nameTmp
+  argsStr <- liftIOE $ DM.validateArg $ args^.argumentsStringToolParams
 #ifdef mingw32_HOST_OS
   let scriptExt = ".bat"
 #else

@@ -10,6 +10,9 @@ import Control.Monad.Reader
 import qualified Data.Text as T
 import Data.Char
 import Control.Monad
+import qualified Control.Concurrent.STM as STM
+import System.Exit
+import Control.Lens
 
 import qualified PMS.Domain.Model.DM.Type as DM
 import qualified PMS.Domain.Model.DS.Utility as DM
@@ -36,7 +39,7 @@ liftIOE f = liftIO (go f) >>= liftEither
     errHdl :: E.SomeException -> IO (Either String a)
     errHdl = return . Left . show
 
-
+{-
 -- |
 --
 validateCommand :: String -> AppContext String
@@ -101,4 +104,42 @@ validateMessage cmd = do
 
     forbiddenCommands :: [String]
     forbiddenCommands = ["rm", "mv", "dd", "chmod", "chown", "shutdown", "reboot", "kill", "nc", "telnet", "ssh"]
+-}
+
+-- |
+--
+toolsCallResponse :: STM.TQueue DM.McpResponse
+                  -> DM.JsonRpcRequest
+                  -> ExitCode
+                  -> String
+                  -> String
+                  -> IO ()
+toolsCallResponse resQ jsonRpc code outStr errStr = do
+  let content = [ DM.McpToolsCallResponseResultContent "text" outStr
+                , DM.McpToolsCallResponseResultContent "text" errStr
+                ]
+      result = DM.McpToolsCallResponseResult {
+                  DM._contentMcpToolsCallResponseResult = content
+                , DM._isErrorMcpToolsCallResponseResult = (ExitSuccess /= code)
+                }
+      resDat = DM.McpToolsCallResponseData jsonRpc result
+      res = DM.McpToolsCallResponse resDat
+
+  STM.atomically $ STM.writeTQueue resQ res
+
+
+-- |
+--
+errorToolsCallResponse :: DM.JsonRpcRequest -> String -> AppContext ()
+errorToolsCallResponse jsonRpc errStr = do
+  let content = [ DM.McpToolsCallResponseResultContent "text" errStr ]
+      result = DM.McpToolsCallResponseResult {
+                  DM._contentMcpToolsCallResponseResult = content
+                , DM._isErrorMcpToolsCallResponseResult = True
+                }
+      resDat = DM.McpToolsCallResponseData jsonRpc result
+      res = DM.McpToolsCallResponse resDat
+
+  resQ <- view DM.responseQueueDomainData <$> lift ask
+  liftIOE $ STM.atomically $ STM.writeTQueue resQ res
 
