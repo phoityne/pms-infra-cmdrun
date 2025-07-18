@@ -7,9 +7,6 @@ import qualified Control.Exception.Safe as E
 import Control.Monad.IO.Class
 import Control.Monad.Except
 import Control.Monad.Reader
-import qualified Data.Text as T
-import Data.Char
-import Control.Monad
 import qualified Control.Concurrent.STM as STM
 import System.Exit
 import Control.Lens
