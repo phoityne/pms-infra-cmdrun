@@ -10,6 +10,9 @@ import Control.Monad.Reader
 import qualified Control.Concurrent.STM as STM
 import System.Exit
 import Control.Lens
+import System.Process
+import System.IO
+import qualified Data.ByteString as BS
 
 import qualified PMS.Domain.Model.DM.Type as DM
 import qualified PMS.Domain.Model.DS.Utility as DM
@@ -74,3 +77,14 @@ errorToolsCallResponse jsonRpc errStr = do
   resQ <- view DM.responseQueueDomainData <$> lift ask
   liftIOE $ STM.atomically $ STM.writeTQueue resQ res
 
+
+-- |
+--
+runCommandBS :: String -> IO (ExitCode, BS.ByteString, BS.ByteString)
+runCommandBS cmd = do
+    (hin, hout, herr, ph) <- runInteractiveCommand cmd
+    hClose hin
+    out <- BS.hGetContents hout
+    err <- BS.hGetContents herr
+    exitCode <- waitForProcess ph
+    return (exitCode, out, err)

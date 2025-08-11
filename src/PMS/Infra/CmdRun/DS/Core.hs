@@ -22,6 +22,9 @@ import System.FilePath
 import Data.Aeson
 import qualified Control.Exception.Safe as E
 import System.Exit
+import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Encoding.Error as TEE
+import qualified Data.ByteString as BS
 
 import qualified PMS.Domain.Model.DM.Type as DM
 import qualified PMS.Domain.Model.DM.Constant as DM
@@ -158,7 +161,7 @@ genCmdRunTask dat = do
   let scriptExt = ".sh"
 #endif
 
-  let cmd = toolsDir </> name ++ scriptExt ++ " " ++ argsStr
+  let cmd = "\"" ++ toolsDir </> name ++ scriptExt ++ "\" " ++ argsStr
 
   $logDebugS DM._LOGTAG $ T.pack $ "cmdRunTask: system cmd. " ++ cmd
   return $ cmdRunTask resQ dat cmd
@@ -171,7 +174,8 @@ cmdRunTask resQ cmdDat cmd = flip E.catchAny errHdl $ do
   hPutStrLn stderr $ "[INFO] PMS.Infra.CmdRun.DS.Core.work.cmdRunTask run. " ++ cmd
   let tout = 30 * 1000 * 1000
 
-  race (readCreateProcessWithExitCode (shell cmd) "") (CC.threadDelay tout) >>= \case
+--  race (readCreateProcessWithExitCode (shell cmd) "") (CC.threadDelay tout) >>= \case
+  race (runCommandBS cmd) (CC.threadDelay tout) >>= \case
     Left (code, out, err)  -> response code out err
     Right _ -> E.throwString "timeout occurred."
 
@@ -179,11 +183,13 @@ cmdRunTask resQ cmdDat cmd = flip E.catchAny errHdl $ do
 
   where
     errHdl :: E.SomeException -> IO ()
-    errHdl e = response (ExitFailure 1) "" (show e)
+    errHdl e = response (ExitFailure 1) "" $ TE.encodeUtf8 . T.pack $ show e
 
-    response :: ExitCode -> String -> String -> IO ()
-    response code outStr errStr = do
-      let jsonRpc = cmdDat^.DM.jsonrpcDefaultCmdRunCommandData
+    response :: ExitCode -> BS.ByteString -> BS.ByteString -> IO ()
+    response code outBS errBS = do
+      let outStr = T.unpack $ TE.decodeUtf8With TEE.lenientDecode outBS
+          errStr = T.unpack $ TE.decodeUtf8With TEE.lenientDecode errBS
+          jsonRpc = cmdDat^.DM.jsonrpcDefaultCmdRunCommandData
           content = [ DM.McpToolsCallResponseResultContent "text" outStr
                     , DM.McpToolsCallResponseResultContent "text" errStr
                     ]
