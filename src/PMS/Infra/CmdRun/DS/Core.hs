@@ -17,7 +17,6 @@ import qualified Control.Concurrent as CC
 import Control.Concurrent.Async
 import qualified Data.Text as T
 import Control.Monad.Except
-import System.Process
 import System.FilePath
 import Data.Aeson
 import qualified Control.Exception.Safe as E

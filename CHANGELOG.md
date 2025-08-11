@@ -1,5 +1,9 @@
 # Revision history for pms-infra-cmdrun
 
+## 0.0.6.0 -- 2025-08-11
+
+* Fixed encoding.
+
 ## 0.0.5.0 -- 2025-07-27
 
 * Fixed resources templates.
