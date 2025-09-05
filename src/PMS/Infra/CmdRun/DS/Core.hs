@@ -148,12 +148,14 @@ genCmdRunTask :: DM.DefaultCmdRunCommandData -> AppContext (IOTask ())
 genCmdRunTask dat = do
   toolsDir <- view DM.toolsDirDomainData <$> lift ask
   resQ <- view DM.responseQueueDomainData <$> lift ask
+  invalidChars <- view DM.invalidCharsDomainData <$> lift ask
+  invalidCmds <- view DM.invalidCmdsDomainData <$> lift ask
   let nameTmp = dat^.DM.nameDefaultCmdRunCommandData
       argsBS = DM.unRawJsonByteString $ dat^.DM.argumentsDefaultCmdRunCommandData
   args <- liftEither $ eitherDecode $ argsBS
   
-  name <- liftIOE $ DM.validateCommand nameTmp
-  argsStr <- liftIOE $ DM.validateArg $ args^.argumentsStringToolParams
+  name <- liftIOE $ DM.validateCommand invalidChars invalidCmds nameTmp
+  argsStr <- liftIOE $ DM.validateArg invalidChars $ args^.argumentsStringToolParams
 #ifdef mingw32_HOST_OS
   let scriptExt = ".bat"
 #else

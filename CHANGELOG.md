@@ -1,5 +1,9 @@
 # Revision history for pms-infra-cmdrun
 
+## 0.0.7.0 -- 2025-09-07
+
+* Support invalidChars configs.
+
 ## 0.0.6.0 -- 2025-08-11
 
 * Fixed encoding.
