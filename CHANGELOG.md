@@ -1,5 +1,9 @@
 # Revision history for pms-infra-cmdrun
 
+## 0.0.8.0 -- 2025-09-23
+
+* Support base64 image tool response.
+
 ## 0.0.7.0 -- 2025-09-07
 
 * Support invalidChars configs.

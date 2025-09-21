@@ -191,9 +191,22 @@ cmdRunTask resQ cmdDat cmd = flip E.catchAny errHdl $ do
       let outStr = T.unpack $ TE.decodeUtf8With TEE.lenientDecode outBS
           errStr = T.unpack $ TE.decodeUtf8With TEE.lenientDecode errBS
           jsonRpc = cmdDat^.DM.jsonrpcDefaultCmdRunCommandData
-          content = [ DM.McpToolsCallResponseResultContent "text" outStr
-                    , DM.McpToolsCallResponseResultContent "text" errStr
-                    ]
+          content =
+            case (decodeStrict' outBS) of
+              Just val -> [
+                  val
+                , DM.McpToolsCallResponseResultContent "text" errStr
+                ]
+              Nothing -> [
+                  DM.McpToolsCallResponseResultContent "text" outStr
+                , DM.McpToolsCallResponseResultContent "text" errStr
+                ]
+
+          -- content = [
+          --   "{\"type\":\"text\",\"text\":\"" ++ outStr ++ "\"}"
+          -- , "{\"type\":\"text\",\"text\":\"" ++ errStr ++ "\"}"
+          -- ]
+
           result = DM.McpToolsCallResponseResult {
                       DM._contentMcpToolsCallResponseResult = content
                     , DM._isErrorMcpToolsCallResponseResult = (ExitSuccess /= code)
